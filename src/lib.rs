@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use ed25519_dalek::{
-    Signer,
-    SigningKey,
-};
+use ed25519_dalek::{Signer, SigningKey, VerifyingKey, Signature, SignatureError};
+
+
+
+pub mod topicdb;
 
 pub type Label = u16;
 #[derive(Error, Debug)]
@@ -32,6 +33,16 @@ impl ErrorCounter {
     }
     pub fn is_too_mutch(&self) -> bool{
         self.count > 40
+    }
+}
+pub struct PublicKey {
+    pub_key: VerifyingKey,
+}
+impl <'sigmsg> PublicKey {
+    pub fn new(pub_key: VerifyingKey) -> Self{
+        PublicKey{
+            pub_key,
+        }
     }
 }
 
@@ -83,8 +94,15 @@ pub struct SignedMsg {
 }
 
 impl SignedMsg{
-    pub fn verify(&self, key: &Key)  {
-
+    pub fn verify(&self, key: &PublicKey) -> Result<&[u8], SignatureError> {
+        let mut buffer:Vec<u8> = Vec::with_capacity(self.payload.len() + self.ad.len()+ std::mem::size_of::<i64>() + self.key_id.len());
+        buffer.extend_from_slice(&self.payload);
+        buffer.extend_from_slice(&self.ad);
+        buffer.extend_from_slice(&self.datetime.to_be_bytes());
+        buffer.extend_from_slice(&self.key_id.as_bytes());
+        let signature =  Signature::from_slice(&self.signature[..])?;
+        key.pub_key.verify_strict(&buffer, &signature)?;
+        Ok(&self.payload)
     }
     pub fn get_key_id(&self) -> &str {
         &self.key_id

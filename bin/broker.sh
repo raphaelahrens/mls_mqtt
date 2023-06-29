@@ -2,7 +2,7 @@
 
 run_broker() {
     podman run \
-        --mount type=bind,target=/etc/rabbitmq/enabled_plugins,source=/home/ahrens/projects/work/knowledge/mls/mls_proxy/data/enabled_plugins \
+        --mount type=bind,target=/etc/rabbitmq/enabled_plugins,source=/home/ahrens/projects/work/knowledge/mls/mls_mqtt/data/enabled_plugins \
         -p "$1":1883 \
         --rm \
         -i \

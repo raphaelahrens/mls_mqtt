@@ -14,9 +14,6 @@ use std::time::SystemTime;
 use tokio::runtime::Builder;
 use tokio::task;
 
-use ed25519_dalek::Signer;
-use chrono::Utc;
-
 use serde::{Deserialize, Serialize};
 
 use mls::{ErrorCounter, Label, LabeledInfo, Key};
@@ -51,7 +48,7 @@ impl ::std::default::Default for Config {
                 path: "./data/label.key".into(),
             },
             info_key: ConfKey{
-                id: "proxy.label.1".into(),
+                id: "proxy.info.1".into(),
                 path: "./data/info.key".into(),
             }
         }
@@ -70,16 +67,6 @@ impl AdditionalData {
 
     }
 }
-
-
-
-#[derive(Debug, Serialize, Deserialize)]
-struct LabeledMsg<'pl, 'sig, 'ad> {
-    payload: &'pl[u8],
-    ad: &'ad[u8],
-    signature: &'sig[u8],
-}
-
 
 fn setup_logger(level: &str) -> Result<()> {
     fern::Dispatch::new()
@@ -117,6 +104,9 @@ fn get_key(conf: &ConfKey) -> Result<Key>{
 
 fn main() -> Result<()> {
     let cfg: Config = confy::load("mls", "proxy.conf")?;
+    if &cfg.label_key.id == &cfg.info_key.id {
+        return Err(eyre!("The ids of the label and info key are the same"));
+    }
     setup_logger(&cfg.log_level)?;
     
     Builder::new_multi_thread()
@@ -136,7 +126,7 @@ fn label_msg(
 ) -> Result<(Vec<u8>, Vec<u8>)> {
     let Some(label) = label_map.get(topic) else { todo!()};
     let ad = AdditionalData::new(*label);
-    let mut buffer: Vec<u8> = Vec::with_capacity(payload.len()  *8);
+    let mut buffer: Vec<u8> = Vec::with_capacity(payload.len() * 8);
     let mut ad_buf: Vec<u8> = Vec::with_capacity(4098);
     ciborium::ser::into_writer(&ad, &mut ad_buf)?;
     let label_msg = label_key.sign_with_ad(payload.to_vec(), ad_buf);
@@ -144,7 +134,7 @@ fn label_msg(
 
     let mut info_buf: Vec<u8> = Vec::with_capacity(4098);
     let label_info = LabeledInfo::new(topic, *label);
-    let info_msg = label_key.sign(label_info.serialize()?.to_vec());
+    let info_msg = info_key.sign(label_info.serialize()?.to_vec());
     ciborium::ser::into_writer(&info_msg, &mut info_buf)?;
     Ok((buffer, info_buf))
 }
