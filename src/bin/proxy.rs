@@ -1,22 +1,26 @@
+use clap::Parser;
 use eyre::{eyre, Result};
 use log::{debug, error, info};
-use rumqttc::{
-    AsyncClient, ConnectionError,
-    Event::{Incoming, Outgoing},
-    MqttOptions,
-    Packet::{ConnAck, Publish},
-    QoS,
-};
-use std::{collections::HashMap, path::PathBuf};
+use rumqttc::{ AsyncClient, ConnectionError, Event::{Incoming, Outgoing}, MqttOptions, Packet::{ConnAck, Publish}, QoS,};
 use std::str::FromStr;
 use std::time::Duration;
 use std::time::SystemTime;
+use std::{collections::HashMap, path::{Path, PathBuf}};
 use tokio::runtime::Builder;
 use tokio::task;
 
 use serde::{Deserialize, Serialize};
 
 use mls::{ErrorCounter, Label, LabeledInfo, Key};
+
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// path to config file
+    #[arg(short, long)]
+    config: Option<PathBuf>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ConfKey {
@@ -103,7 +107,21 @@ fn get_key(conf: &ConfKey) -> Result<Key>{
 }
 
 fn main() -> Result<()> {
-    let cfg: Config = confy::load("mls", "proxy.conf")?;
+    let args = Args::parse();
+    dbg!(&args);
+    let home_conf = dbg!(confy::get_configuration_file_path("mls", "proxy.conf"));
+    let mut conf_path = Path::new("/usr/local/etc/mls/proxy.conf");
+    
+    if let Some(ref path) = args.config {
+        // If the --config flag has been give use that path
+        conf_path = &path
+    } else if let Ok(ref path) = home_conf{
+        // If the --config flag has been give use that path
+        conf_path = &path
+    }
+    dbg!(&conf_path);
+    let cfg:Config = confy::load_path(&conf_path)?;
+    
     if &cfg.label_key.id == &cfg.info_key.id {
         return Err(eyre!("The ids of the label and info key are the same"));
     }
@@ -124,7 +142,7 @@ fn label_msg(
     label_key: &Key,
     info_key: &Key,
 ) -> Result<(Vec<u8>, Vec<u8>)> {
-    let Some(label) = label_map.get(topic) else { todo!()};
+    let Some(label) = label_map.get(topic) else { todo!();};
     let ad = AdditionalData::new(*label);
     let mut buffer: Vec<u8> = Vec::with_capacity(payload.len() * 8);
     let mut ad_buf: Vec<u8> = Vec::with_capacity(4098);

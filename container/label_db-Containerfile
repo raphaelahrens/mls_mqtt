@@ -1,0 +1,7 @@
+FROM debian:12-slim
+
+COPY ./release/label_db /usr/local/bin
+
+# Run the binary
+CMD ["/usr/local/bin/label_db"]
+

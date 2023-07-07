@@ -1,0 +1,33 @@
+services:
+  edge_broker:
+    image: rabbitmq
+    ports:
+      - 11883:1883
+    networks:
+      - edge
+  fog_broker:
+    image: rabbitmq
+    ports:
+      - 21883:1883
+    networks:
+      - fog
+  mls_proxy:
+    image: localhost/mls_proxy
+    build:
+      context: ./
+      dockerfile: ./container/proxy-Containerfile
+    networks:
+      - fog
+      - edge
+  mls_label_db:
+    image: localhost/mls_labeldb
+    build:
+      context: ./
+      dockerfile: ./container/label_db-Containerfile
+    networks:
+      - fog
+networks:
+  edge:
+    driver: bridge
+  fog:
+    driver: bridge

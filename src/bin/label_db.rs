@@ -2,6 +2,7 @@ use std::{path::PathBuf, sync::Arc, time::Duration};
 use std::time::SystemTime;
 use std::str::FromStr;
 use std::io;
+use std::fs;
 
 use eyre::{eyre, Result};
 use log::{debug, error, info};
@@ -72,7 +73,7 @@ impl ::std::default::Default for Config {
                 id: "proxy.info.1".into(),
             },
             threads: 2,
-            socket_path: "/tmp/labeldb.sock".into(),
+            socket_path: "/tmp/mls/labeldb.sock".into(),
         }
     }
 }
@@ -96,6 +97,13 @@ fn setup_logger(level: &str) -> Result<()> {
 
 fn main() -> Result<()> {
     let cfg: Config = confy::load("mls", "labeldb.conf")?;
+    let parent_dir = cfg.socket_path.parent().unwrap();
+    fs::create_dir_all(parent_dir)?;
+    if let Err(e) = fs::remove_file(&cfg.socket_path) {
+        debug!("Ignore error since this means the file was not there {}", e);
+    } else {
+        debug!("Removed old socket")
+    }
     setup_logger(&cfg.log_level)?;
     Builder::new_multi_thread()
         .enable_all()
