@@ -110,14 +110,15 @@ fn main() -> Result<()> {
     let args = Args::parse();
     dbg!(&args);
     let home_conf = dbg!(confy::get_configuration_file_path("mls", "proxy.conf"));
-    let mut conf_path = Path::new("/usr/local/etc/mls/proxy.conf");
+    let mut conf_path = Path::new("/usr/local/etc/mls/proxy.conf.toml");
     
     if let Some(ref path) = args.config {
         // If the --config flag has been give use that path
         conf_path = &path
     } else if let Ok(ref path) = home_conf{
-        // If the --config flag has been give use that path
-        conf_path = &path
+        if path.exists() {
+            conf_path = &path
+        }
     }
     dbg!(&conf_path);
     let cfg:Config = confy::load_path(&conf_path)?;

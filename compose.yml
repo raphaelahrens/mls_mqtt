@@ -1,33 +1,45 @@
 services:
   edge_broker:
     image: rabbitmq
+    container_name: edge_broker
+    volumes:
+      - "./data/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro"
     ports:
-      - 11883:1883
+      - 1883:1883
     networks:
       - edge
   fog_broker:
     image: rabbitmq
-    ports:
-      - 21883:1883
+    container_name: fog_broker
+    volumes:
+      - "./data/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro"
+    port:
+      - 1883:1883
     networks:
       - fog
-  mls_proxy:
+  proxy:
     image: localhost/mls_proxy
+    container_name: proxy
     build:
       context: ./
       dockerfile: ./container/proxy-Containerfile
+    volumes:
+      - "./container/config/proxy.conf.toml:/usr/local/etc/mls/proxy.conf.toml:ro"
+      - "./data/:/usr/local/etc/mls/data:ro"
     networks:
-      - fog
       - edge
-  mls_label_db:
+      - fog
+  label_db:
     image: localhost/mls_labeldb
+    container_name: label_db
     build:
       context: ./
       dockerfile: ./container/label_db-Containerfile
+    volumes:
+      - "./container/config/labeldb.conf.toml:/usr/local/etc/mls/labeldb.conf.toml:ro"
+      - "./sock/:/tmp/mls/"
     networks:
-      - fog
+      - edge
 networks:
-  edge:
-    driver: bridge
-  fog:
-    driver: bridge
+  edge: {}
+  fog: {}

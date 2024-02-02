@@ -1,0 +1,6 @@
+broker      = 'mqtt://fog_broker:1883?client_id=label_db1'
+log_level   = 'debug'
+mls_topic   = 'mls/info'
+mls_pubkey  = { key='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEJ9kG9W5agBb/+UgcAT33f6HsccEJ+EEfQt6ID7mUpE proxy.info.1', id = "proxy.info.1"}
+threads     = 2
+socket_path = '/tmp/mls/label_db.sock'
